@@ -594,8 +594,13 @@ always @(posedge clk_core_12288 or negedge reset_n) begin
                 vidout_rgb[23:16] <= 8'd60;
                 vidout_rgb[15:8]  <= 8'd60;
                 vidout_rgb[7:0]   <= 8'd60;
-                
-            end 
+
+                if (x_count < 60 || y_count > 200) begin
+                    vidout_rgb[23:16] <= 8'd255;
+                    vidout_rgb[15:8]  <= 8'd0;
+                    vidout_rgb[7:0]   <= 8'd0;
+                end
+            end
         end
     end
 end
