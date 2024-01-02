@@ -26,3 +26,4 @@ cr_ie_info.json
 *.sld
 *.cdf
 
+output_files/
