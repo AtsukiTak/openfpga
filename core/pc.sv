@@ -8,7 +8,7 @@ module PC
   always_ff @(posedge clk or negedge rst_n)
   begin
     if (!rst_n)
-      pc <= 0;
+      pc <= 32'h8000_0000;
     else
       pc <= pc_next;
   end
