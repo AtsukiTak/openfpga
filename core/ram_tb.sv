@@ -1,3 +1,5 @@
+`include "ram.sv"
+
 module ram_tb();
   logic clk, we;
   logic [31:0] addr, data_in, data_out;

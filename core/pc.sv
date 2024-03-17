@@ -1,4 +1,4 @@
-module PC
+module pc
 (
   input logic clk,
   input logic rst_n,

@@ -1,9 +1,6 @@
-.PHONY: TEST_ALL TEST_NAND
-
-TEST_ALL: TEST_pc
-
-TEST_%: dist/%_tb
+# e.x.: make test_pc
+test_%: dist/%_tb
 	vvp $^
 
-dist/%_tb: %_tb.sv %.sv
+dist/%_tb: %_tb.sv
 	iverilog -g2012 -o $@ $^
