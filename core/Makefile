@@ -2,5 +2,5 @@
 test_%: dist/%_tb
 	vvp $^
 
-dist/%_tb: %_tb.sv
+dist/%: %.sv
 	iverilog -g2012 -o $@ $^
