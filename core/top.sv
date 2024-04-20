@@ -24,29 +24,32 @@ module top #(
 
   // RAMから命令を読み出し
   assign ram0.addr1 = pc0.pc;
-  wire [31:0] instr = ram0.rd1;
 
   // Instantiate decoder
-  decoder dec0(.instr(instr));
-  assign ram0.we2 = dec0.mem_we;
+  decoder dec0(.instr(ram0.rd1));
 
   // Instantiate registers module
   registers regs0(
     .clk(clk),
     .rst_n(rst_n),
     .a1(dec0.rs1),
-    .a2(dec0.rs2),
-    .rd2(ram0.wd2),
-    .a3(dec0.rd),
-    .we3(dec0.reg_we),
-    .wd3(ram0.rd2)
+    .a2(dec0.rs2)
   );
 
   // Instantiate ALU module
   alu alu0(
     .src_a(regs0.rd1),
     .src_b(dec0.imm),
-    .alu_op(3'b000),
-    .result(ram0.addr2)
+    .alu_op(dec0.alu_op)
   );
+
+  // メモリへの結果書き込み
+  assign ram0.addr2 = alu0.result;
+  assign ram0.we2 = dec0.mem_we;
+  assign ram0.wd2 = regs0.rd2;
+
+  // レジスタへの結果書き込み
+  assign regs0.a3 = dec0.rd;
+  assign regs0.we3 = dec0.reg_we;
+  assign regs0.wd3 = dec0.reg_wd_src == REG_WD_SRC_ALU ? alu0.result : ram0.rd2;
 endmodule

@@ -14,4 +14,9 @@ typedef enum logic {
   ALU_SRC_IMM
 } alu_src_e;
 
+typedef enum logic {
+  REG_WD_SRC_ALU,
+  REG_WD_SRC_MEM
+} reg_wd_src_e;
+
 `endif

@@ -12,6 +12,7 @@ module decoder(
   output logic [2:0] alu_op, // ALU operation
   output alu_src_e alu_src, // ALU source
   output logic reg_we, // Register write enable
+  output reg_wd_src_e reg_wd_src, // Register write data source (ALU or memory)
   output logic mem_we // Memory write enable
 );
   wire [6:0] opcode = instr[6:0];
@@ -19,6 +20,7 @@ module decoder(
   assign rs2 = instr[24:20];
   assign rd = instr[11:7];
 
+  // Sign-extend immediate (for I-type and S-type instructions)
   wire [31:0] imm_i = {{20{instr[31]}}, instr[31:20]};
   wire [31:0] imm_s = {{20{instr[31]}}, instr[31:25], instr[11:7]};
 
@@ -29,6 +31,7 @@ module decoder(
         alu_op = ALU_ADD;
         alu_src = ALU_SRC_IMM;
         reg_we = 1;
+        reg_wd_src = REG_WD_SRC_MEM;
         mem_we = 0;
       end
       7'b0100011: begin // Store (S-type)
@@ -37,6 +40,14 @@ module decoder(
         alu_src = ALU_SRC_IMM;
         reg_we = 0;
         mem_we = 1;
+      end
+      7'b0010011: begin // Add (I-type)
+        imm = imm_i;
+        alu_op = ALU_ADD;
+        alu_src = ALU_SRC_IMM;
+        reg_we = 1;
+        reg_wd_src = REG_WD_SRC_ALU;
+        mem_we = 0;
       end
     endcase
   end
