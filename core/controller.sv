@@ -32,12 +32,23 @@ module controller(
   wire [31:0] sign_ext_imm_b = {{19{imm_b[11]}}, imm_b, 1'b0};
   wire [31:0] sign_ext_imm_j = {{11{imm_j[19]}}, imm_j, 1'b0};
 
+  // Load用のデータ
   wire [31:0] sign_ext_byte_mem_out = {{24{mem_out[7]}}, mem_out[7:0]};
   wire [31:0] sign_ext_half_mem_out = {{16{mem_out[15]}}, mem_out[15:0]};
   wire [31:0] unsign_ext_byte_mem_out = {{24{1'b0}}, mem_out[7:0]};
   wire [31:0] unsign_ext_half_mem_out = {{16{1'b0}}, mem_out[15:0]};
 
+  // auipc用のデータ
+  wire [31:0] upimm = {imm_u, 12'b0};
+
+  // Store用のデータ
+  wire [31:0] byte_store_data = {mem_out[31:8], rs2_rd[7:0]};
+  wire [31:0] half_store_data = {mem_out[31:16], rs2_rd[15:0]};
+
+  // 分岐先アドレス
   wire [31:0] branch_addr = pc + sign_ext_imm_b;
+
+  // ジャンプ先アドレス
   wire [31:0] jump_addr = pc + sign_ext_imm_j;
 
   always_comb begin
@@ -51,79 +62,44 @@ module controller(
         mem_we = 0;
         pc_next = pc + 4;
         case (funct3)
-          3'b000: begin // lb
-            rd_wd = sign_ext_byte_mem_out;
-          end
-          3'b001: begin // lh
-            rd_wd = sign_ext_half_mem_out;
-          end
-          3'b010: begin // lw
-            rd_wd = mem_out;
-          end
-          3'b100: begin // lbu
-            rd_wd = unsign_ext_byte_mem_out;
-          end
-          3'b101: begin // lhu
-            rd_wd = unsign_ext_half_mem_out;
-          end
+          3'b000: rd_wd = sign_ext_byte_mem_out; // lb
+          3'b001: rd_wd = sign_ext_half_mem_out; // lh
+          3'b010: rd_wd = mem_out; // lw
+          3'b100: rd_wd = unsign_ext_byte_mem_out; // lbu
+          3'b101: rd_wd = unsign_ext_half_mem_out; // lhu
         endcase
       end
       7'b0010011: begin // Imm ALU Ops (I-Type)
+        alu_src_a = rs1_rd;
+        alu_src_b = sign_ext_imm_i;
         rd_we = 1;
         rd_wd = alu_out;
         mem_we = 0;
         pc_next = pc + 4;
         case (funct3)
-          3'b000: begin // addi
-            alu_op = ALU_ADD;
-            alu_src_a = rs1_rd;
-            alu_src_b = sign_ext_imm_i;
-          end
-          3'b001: begin // slli
-            alu_op = ALU_SLL;
-            alu_src_a = rs1_rd;
-            alu_src_b = imm_i;
-          end
-          3'b010: begin // slti
-            alu_op = ALU_SLT;
-            alu_src_a = rs1_rd;
-            alu_src_b = sign_ext_imm_i;
-          end
-          3'b011: begin // sltiu
-            alu_op = ALU_SLTU;
-            alu_src_a = rs1_rd;
-            alu_src_b = sign_ext_imm_i;
-          end
-          3'b100: begin // xori
-            alu_op = ALU_XOR;
-            alu_src_a = rs1_rd;
-            alu_src_b = sign_ext_imm_i;
-          end
+          3'b000: alu_op = ALU_ADD; // addi
+          3'b001: alu_op = ALU_SLL; // slli
+          3'b010: alu_op = ALU_SLT; // slti
+          3'b011: alu_op = ALU_SLTU; // sltiu
+          3'b100: alu_op = ALU_XOR; // xori
           3'b101: begin
             case (funct7)
-              7'b0000000: begin // srli
-                alu_op = ALU_SRL;
-                alu_src_a = rs1_rd;
-                alu_src_b = imm_i;
-              end
-              7'b0100000: begin // srai
-                alu_op = ALU_SRA;
-                alu_src_a = rs1_rd;
-                alu_src_b = imm_i;
-              end
+              7'b0000000: alu_op = ALU_SRL; // srli
+              7'b0100000: alu_op = ALU_SRA; // srai
             endcase
           end
-          3'b110: begin // ori
-            alu_op = ALU_OR;
-            alu_src_a = rs1_rd;
-            alu_src_b = sign_ext_imm_i;
-          end
-          3'b111: begin // andi
-            alu_op = ALU_AND;
-            alu_src_a = rs1_rd;
-            alu_src_b = sign_ext_imm_i;
-          end
+          3'b110: alu_op = ALU_OR; // ori
+          3'b111: alu_op = ALU_AND; // andi
         endcase
+      end
+      7'b0010111: begin // auipc (rd = upimm + PC, upimm = imm_u << 12)
+        alu_op = ALU_ADD;
+        alu_src_a = pc;
+        alu_src_b = upimm;
+        rd_we = 1;
+        rd_wd = alu_out;
+        mem_we = 0;
+        pc_next = pc + 4;
       end
       7'b0100011: begin // Store Ops (S-Type)
         alu_op = ALU_ADD;
@@ -131,9 +107,13 @@ module controller(
         alu_src_b = sign_ext_imm_s;
         mem_addr = alu_out;
         mem_we = 1;
-        mem_wd = rs2_rd;
         rd_we = 0;
         pc_next = pc + 4;
+        case (funct3)
+          3'b000: mem_wd = byte_store_data; // sb
+          3'b001: mem_wd = half_store_data; // sh
+          3'b010: mem_wd = rs2_rd; // sw
+        endcase
       end
       7'b0110011: begin // ALU Ops (R-Type)
         alu_src_a = rs1_rd;
@@ -145,23 +125,29 @@ module controller(
         case (funct3)
           3'b000: begin
             case (funct7)
-              7'b0000000: alu_op = ALU_ADD;
-              7'b0100000: alu_op = ALU_SUB;
+              7'b0000000: alu_op = ALU_ADD; // add
+              7'b0100000: alu_op = ALU_SUB; // sub
             endcase
           end
-          3'b001: alu_op = ALU_SLL;
-          3'b010: alu_op = ALU_SLT;
-          3'b011: alu_op = ALU_SLTU;
-          3'b100: alu_op = ALU_XOR;
+          3'b001: alu_op = ALU_SLL; // sll
+          3'b010: alu_op = ALU_SLT; // slt
+          3'b011: alu_op = ALU_SLTU; // sltu
+          3'b100: alu_op = ALU_XOR; // xor
           3'b101: begin
             case (funct7)
-              7'b0000000: alu_op = ALU_SRL;
-              7'b0100000: alu_op = ALU_SRA;
+              7'b0000000: alu_op = ALU_SRL; // srl
+              7'b0100000: alu_op = ALU_SRA; // sra
             endcase
           end
-          3'b110: alu_op = ALU_OR;
-          3'b111: alu_op = ALU_AND;
+          3'b110: alu_op = ALU_OR; // or
+          3'b111: alu_op = ALU_AND; // and
         endcase
+      end
+      7'b0110111: begin // lui (rd = upimm, upimm = imm_u << 12)
+        rd_we = 1;
+        rd_wd = upimm;
+        mem_we = 0;
+        pc_next = pc + 4;
       end
       7'b1100011: begin // Branch Ops (B-Type)
         pc_next = pc + 4;
