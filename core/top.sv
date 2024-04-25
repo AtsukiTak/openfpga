@@ -50,6 +50,8 @@ module top #(
     .imm_i(dec0.imm_i),
     .imm_s(dec0.imm_s),
     .imm_b(dec0.imm_b),
+    .imm_u(dec0.imm_u),
+    .imm_j(dec0.imm_j),
     .rs1_rd(regs0.rd1),
     .rs2_rd(regs0.rd2),
     .pc(pc0.pc)

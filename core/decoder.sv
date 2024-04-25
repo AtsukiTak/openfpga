@@ -13,7 +13,9 @@ module decoder(
   output wire [4:0] rd,
   output wire [11:0] imm_i,
   output wire [11:0] imm_s,
-  output wire [12:1] imm_b
+  output wire [11:0] imm_b,
+  output wire [19:0] imm_u,
+  output wire [19:0] imm_j
 );
   assign opcode = instr[6:0];
   assign funct3 = instr[14:12];
@@ -24,6 +26,8 @@ module decoder(
   assign imm_i = instr[31:20];
   assign imm_s = {instr[31:25], instr[11:7]};
   assign imm_b = {instr[31], instr[7], instr[30:25], instr[11:8]};
+  assign imm_u = instr[31:12];
+  assign imm_j = {instr[31], instr[19:12], instr[20], instr[30:21]};
 endmodule
 
 `endif
