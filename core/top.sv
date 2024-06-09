@@ -5,6 +5,7 @@
 `include "ram.sv"
 `include "controller.sv"
 `include "types.sv"
+`include "csr.sv"
 
 module top #(
   parameter PC_INIT = 32'h8000_0000,
@@ -37,6 +38,11 @@ module top #(
     .a1(dec0.rs1),
     .a2(dec0.rs2),
     .a3(dec0.rd)
+  );
+
+  // Instantiate CSR module
+  registers csr0(
+    .clk(clk)
   );
 
   // Instantiate ALU module
@@ -75,4 +81,10 @@ module top #(
   // rdレジスタとcontrollerの繋ぎこみ
   assign regs0.we3 = controller0.rd_we;
   assign regs0.wd3 = controller0.rd_wd;
+
+  // CSRとcontrollerの繋ぎこみ
+  assign csr0.csr_addr = controller0.csr_addr;
+  assign csr0.csr_we = controller0.csr_we;
+  assign csr0.csr_wd = controller0.csr_wd;
+  assign controller0.csr_rd = csr0.csr_rd;
 endmodule

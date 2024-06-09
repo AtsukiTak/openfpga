@@ -12,8 +12,10 @@ module controller(
   input wire [11:0] imm_b,
   input wire [19:0] imm_u,
   input wire [19:0] imm_j,
+  input wire [4:0] rs1,
   input wire [31:0] rs1_rd,
   input wire [31:0] rs2_rd,
+  input wire [31:0] csr_rd,
   input wire [31:0] alu_out,
   input wire [31:0] mem_out,
   input wire [31:0] pc,
@@ -25,6 +27,9 @@ module controller(
   output logic [31:0] mem_wd,
   output logic rd_we,
   output logic [31:0] rd_wd,
+  output logic [11:0] csr_addr,
+  output logic csr_we,
+  output logic [31:0] csr_wd,
   output logic [31:0] pc_next
 );
   wire [31:0] sign_ext_imm_i = {{20{imm_i[11]}}, imm_i};
@@ -50,6 +55,9 @@ module controller(
 
   // ジャンプ先アドレス
   wire [31:0] jump_addr = pc + sign_ext_imm_j;
+
+  // CSR転送命令用の即値データ
+  wire [31:0] csr_imm = {{27{1'b0}}, rs1};
 
   always_comb begin
     case(opcode)
@@ -214,6 +222,67 @@ module controller(
         rd_wd = pc + 4;
         // メモリアクセスはなし
         mem_we = 0;
+      end
+      7'b1110011: begin // System Ops
+        case (funct3)
+          3'b000: begin // ecall, ebreak, uret, sret, mret
+            // TODO!!
+          end
+          3'b001: begin // csrrw
+            // レジスタにCSRの値を書き込む
+            rd_we = 1;
+            rd_wd = csr_rd;
+            // CSRにレジスタの値を書き込む
+            csr_addr = imm_i;
+            csr_we = 1;
+            csr_wd = rs1_rd;
+          end
+          3'b010: begin // csrrs
+            // レジスタにCSRの値を書き込む
+            rd_we = 1;
+            rd_wd = csr_rd;
+            // CSRをレジスタの値でビットセット
+            csr_addr = imm_i;
+            csr_we = 1;
+            csr_wd = csr_rd | rs1_rd;
+          end
+          3'b011: begin // csrrc
+            // レジスタにCSRの値を書き込む
+            rd_we = 1;
+            rd_wd = csr_rd;
+            // CSRをレジスタの値でビットクリア
+            csr_addr = imm_i;
+            csr_we = 1;
+            csr_wd = csr_rd & ~rs1_rd;
+          end
+          3'b101: begin // csrrwi
+            // レジスタにCSRの値を書き込む
+            rd_we = 1;
+            rd_wd = csr_rd;
+            // CSRに即値を書き込む
+            csr_addr = imm_i;
+            csr_we = 1;
+            csr_wd = csr_imm;
+          end
+          3'b110: begin // csrrsi
+            // レジスタにCSRの値を書き込む
+            rd_we = 1;
+            rd_wd = csr_rd;
+            // CSRを即値でビットセット
+            csr_addr = imm_i;
+            csr_we = 1;
+            csr_wd = csr_rd | csr_imm;
+          end
+          3'b111: begin // csrrci
+            // レジスタにCSRの値を書き込む
+            rd_we = 1;
+            rd_wd = csr_rd;
+            // CSRを即値でビットクリア
+            csr_addr = imm_i;
+            csr_we = 1;
+            csr_wd = csr_rd & ~csr_imm;
+          end
+        endcase
       end
     endcase
   end
