@@ -41,7 +41,7 @@ module top #(
   );
 
   // Instantiate CSR module
-  registers csr0(
+  csr csr0(
     .clk(clk)
   );
 

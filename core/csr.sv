@@ -3,10 +3,10 @@
 
 module csr(
   input wire clk,
-  input wire [11:0] csr_addr,
-  input wire csr_we,
-  input wire [31:0] csr_wd,
-  output wire [31:0] csr_rd
+  input logic [11:0] csr_addr,
+  input logic csr_we,
+  input logic [31:0] csr_wd,
+  output logic [31:0] csr_rd
 );
   logic [31:0] csr [0:4095];
 

@@ -3,49 +3,42 @@
 module ram_tb();
   logic clk, we;
   logic [31:0] addr, mem_wd, mem_rd;
+  logic [31:0] addr1, mem_rd1;
 
-  logic rst_n;
-  logic [7:0] rst_data [0:127];
-
-  ram #(.MEM_SIZE(128)) ram0(
+  ram #(.MEM_SIZE(16384), .START_ADDR(32'h8000_0000)) ram0(
     .clk      (clk),
     // port 2
     .addr2    (addr),
     .we2      (we),
     .rd2      (mem_rd),
-    .wd2      (mem_wd),
-    // for reset
-    .rst_n  (rst_n),
-    .rst_data (rst_data)
+    .wd2      (mem_wd)
   );
 
   initial begin
     $dumpfile("dist/ram_tb.vcd");
     $dumpvars(0, ram_tb);
 
+    $readmemh("../tests/isa/rv32ui-p-add.hex", ram0.mem);
+
     // initialize signals
     clk = 0; we = 0; addr = 0; mem_wd = 0;
-
-    // initialize memory
-    rst_n = 1;
-    rst_data[0] <= 8'h10;
-    rst_data[1] <= 8'h32;
-    rst_data[2] <= 8'h54;
-    rst_data[3] <= 8'h76;
-    #1 rst_n = 0;
+    #10
 
     // read data
-    we = 0; addr = 0;
+    we = 0; addr = 32'h8000_0000;
     #10;
-    assert(mem_rd == 32'h76543210);
+    assert(mem_rd == 32'h0500_006F) else $fatal(1, "mem_rd = %h", mem_rd);
 
     // write data
-    we = 1; addr = 0; mem_wd = 32'h12345678; clk = 1;
-    #10;
+    we = 1; mem_wd = 32'h1234_5678; clk = 1;
+    for (int i = 0; i < 10; i++) begin
+      #10;
+      clk = ~clk;
+    end
 
     // read data
-    we = 0; addr = 0; clk = 0;
+    we = 0; clk = 0;
     #10;
-    assert(mem_rd == 32'h12345678);
+    assert(mem_rd == 32'h1234_5678) else $fatal(1, "mem_rd = %h", mem_rd);
   end
 endmodule
