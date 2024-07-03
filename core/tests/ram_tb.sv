@@ -1,4 +1,4 @@
-`include "ram.sv"
+`include "src/ram.sv"
 
 module ram_tb();
   logic clk, we;
@@ -18,7 +18,7 @@ module ram_tb();
     $dumpfile("dist/ram_tb.vcd");
     $dumpvars(0, ram_tb);
 
-    $readmemh("../tests/isa/rv32ui-p-add.hex", ram0.mem);
+    $readmemh("tests/isa/rv32ui-p-add.hex", ram0.mem);
 
     // initialize signals
     clk = 0; we = 0; addr = 0; mem_wd = 0;

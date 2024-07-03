@@ -1,4 +1,4 @@
-`include "pc.sv"
+`include "src/pc.sv"
 
 module pc_tb();
   logic clk, rst_n;

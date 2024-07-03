@@ -1,11 +1,11 @@
-`include "pc.sv"
-`include "registers.sv"
-`include "alu.sv"
-`include "decoder.sv"
-`include "ram.sv"
-`include "controller.sv"
-`include "types.sv"
-`include "csr.sv"
+`include "src/pc.sv"
+`include "src/registers.sv"
+`include "src/alu.sv"
+`include "src/decoder.sv"
+`include "src/ram.sv"
+`include "src/controller.sv"
+`include "src/types.sv"
+`include "src/csr.sv"
 
 module top #(
   parameter PC_INIT = 32'h8000_0000,
@@ -20,9 +20,11 @@ module top #(
   );
 
   // Instantiate RAM
-  ram #(.MEM_SIZE(MEM_SIZE)) ram0(
-    .clk(clk),
-    .rst_n(rst_n)
+  ram #(
+    .MEM_SIZE(MEM_SIZE),
+    .START_ADDR(32'h8000_0000)
+  ) ram0(
+    .clk(clk)
   );
 
   // RAMから命令を読み出し

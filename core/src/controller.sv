@@ -1,7 +1,7 @@
 `ifndef __CONTROLLER_SC
 `define __CONTROLLER_SC
 
-`include "types.sv"
+`include "src/types.sv"
 
 module controller(
   input wire [6:0] opcode,

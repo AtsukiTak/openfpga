@@ -1,7 +1,7 @@
 `ifndef __DECODER_SV
 `define __DECODER_SV
 
-`include "types.sv"
+`include "src/types.sv"
 
 module decoder(
   input wire [31:0] instr,

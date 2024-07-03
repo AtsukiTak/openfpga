@@ -1,4 +1,4 @@
-`include "registers.sv"
+`include "src/registers.sv"
 
 module register_tb();
   logic clk, rst_n, we3;
