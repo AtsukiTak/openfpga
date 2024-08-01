@@ -1,11 +1,11 @@
-`include "src/pc.sv"
-`include "src/registers.sv"
-`include "src/alu.sv"
-`include "src/decoder.sv"
-`include "src/ram.sv"
-`include "src/controller.sv"
-`include "src/types.sv"
-`include "src/csr.sv"
+`include "pc.sv"
+`include "registers.sv"
+`include "alu.sv"
+`include "decoder.sv"
+`include "ram.sv"
+`include "controller.sv"
+`include "types.sv"
+`include "csr.sv"
 
 module top #(
   parameter PC_INIT = 32'h8000_0000,
@@ -85,8 +85,16 @@ module top #(
   assign regs0.wd3 = controller0.rd_wd;
 
   // CSRとcontrollerの繋ぎこみ
-  assign csr0.csr_addr = controller0.csr_addr;
-  assign csr0.csr_we = controller0.csr_we;
-  assign csr0.csr_wd = controller0.csr_wd;
-  assign controller0.csr_rd = csr0.csr_rd;
+  assign csr0.csr_addr1 = controller0.csr_addr1;
+  assign csr0.csr_addr2 = controller0.csr_addr2;
+  assign csr0.csr_addr3 = controller0.csr_addr3;
+  assign csr0.csr_we1 = controller0.csr_we1;
+  assign csr0.csr_we2 = controller0.csr_we2;
+  assign csr0.csr_we3 = controller0.csr_we3;
+  assign csr0.csr_wd1 = controller0.csr_wd1;
+  assign csr0.csr_wd2 = controller0.csr_wd2;
+  assign csr0.csr_wd3 = controller0.csr_wd3;
+  assign controller0.csr_rd1 = csr0.csr_rd1;
+  assign controller0.csr_rd2 = csr0.csr_rd2;
+  assign controller0.csr_rd3 = csr0.csr_rd3;
 endmodule

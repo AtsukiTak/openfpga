@@ -17,7 +17,10 @@ RUN git clone --recursive https://github.com/riscv/riscv-tests
 WORKDIR $RISCV/riscv-tests
 RUN autoconf && ./configure --prefix=$RISCV/target && make && make install
 
-WORKDIR $RISCV/target/share/riscv-tests/isa
-RUN for f in $(ls rv* | grep -v -E ".dump"); do \
-      riscv64-unknown-elf-objcopy -O verilog $f $f.hex; \
+WORKDIR $RISCV/target/share/riscv-tests
+RUN isa-hex
+RUN for f in $(ls isa/rv* | grep -v -E ".dump"); do \
+      riscv64-unknown-elf-objcopy -O verilog $f ../isa-hex/$f.hex; \
     done
+
+WORKDIR $RISCV/target/share/riscv-tests/isa-hex

@@ -1,8 +1,8 @@
-`include "src/top.sv"
-`include "src/ram.sv"
+`include "top.sv"
+`include "ram.sv"
 
 module top_tb();
-  parameter MEM_SIZE = 'h2024;
+  parameter MEM_SIZE = 'h4048;
   parameter PC_INIT = 'h8000_0000;
 
   logic clk, rst_n;
@@ -13,11 +13,13 @@ module top_tb();
     .rst_n(rst_n)
   );
 
-  initial begin
-    $dumpfile("dist/top_tb.vcd");
-    $dumpvars(0, top_tb);
+  string memfile;
 
-    $readmemh("tests/isa/rv32ui-p-add.hex", mem_data, 'h80000000);
+  initial begin
+    if (!$value$plusargs("memfile=%s", memfile))
+      $fatal(1, "memfile is not specified");
+
+    $readmemh(memfile, top0.ram0.mem);
 
     // initialize
     clk = 0; rst_n = 1;
@@ -26,14 +28,15 @@ module top_tb();
     #1 rst_n = 0;
     #1 rst_n = 1;
 
-    // 2clock進める
-    repeat(5) begin
-      #1 clk = ~clk;
+    // clockを進める
+    repeat(5000) begin
+      #5 clk = ~clk;
+      #5 clk = ~clk;
     end
-
-    // 1028番地に0x1234_5678がstoreされていることを確認
     #1;
-    assert(top0.ram0.mem[1028] === 32'h12345678)
-      else $display("store error. expected: 32'h12345678, actual: %h", top0.ram0.mem[1028]);
+
+    // 3番レジスタに1が格納されているか確認
+    assert(top0.regs0.regs[3] === 1)
+      else $display("reg[3] error. expected: 32'h00000001, actual: %h", top0.regs0.regs[3]);
   end
 endmodule

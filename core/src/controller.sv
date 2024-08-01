@@ -1,7 +1,7 @@
 `ifndef __CONTROLLER_SC
 `define __CONTROLLER_SC
 
-`include "src/types.sv"
+`include "types.sv"
 
 module controller(
   input wire [6:0] opcode,
@@ -15,7 +15,9 @@ module controller(
   input wire [4:0] rs1,
   input wire [31:0] rs1_rd,
   input wire [31:0] rs2_rd,
-  input wire [31:0] csr_rd,
+  input wire [31:0] csr_rd1,
+  input wire [31:0] csr_rd2,
+  input wire [31:0] csr_rd3,
   input wire [31:0] alu_out,
   input wire [31:0] mem_out,
   input wire [31:0] pc,
@@ -27,9 +29,15 @@ module controller(
   output logic [31:0] mem_wd,
   output logic rd_we,
   output logic [31:0] rd_wd,
-  output logic [11:0] csr_addr,
-  output logic csr_we,
-  output logic [31:0] csr_wd,
+  output logic [11:0] csr_addr1,
+  output logic [11:0] csr_addr2,
+  output logic [11:0] csr_addr3,
+  output logic csr_we1,
+  output logic csr_we2,
+  output logic csr_we3,
+  output logic [31:0] csr_wd1,
+  output logic [31:0] csr_wd2,
+  output logic [31:0] csr_wd3,
   output logic [31:0] pc_next
 );
   wire [31:0] sign_ext_imm_i = {{20{imm_i[11]}}, imm_i};
@@ -226,63 +234,122 @@ module controller(
       7'b1110011: begin // System Ops
         case (funct3)
           3'b000: begin // ecall, ebreak, uret, sret, mret
-            // TODO!!
+            case (imm_i)
+              12'h000: begin // ecall
+                // mcauseレジスタの値を更新
+                csr_addr1 = 12'h342;
+                csr_we1 = 1;
+                csr_wd1 = 11;
+                // mepcレジスタの値を更新
+                csr_addr2 = 12'h341;
+                csr_we2 = 1;
+                csr_wd2 = pc; // ecall命令のアドレスを保存
+                // mstatusレジスタの値を更新
+                // TODO
+
+                // mtvecレジスタの値から例外ベクタアドレスを取得
+                csr_addr3 = 12'h305;
+                pc_next = csr_rd3;
+              end
+              12'h001: begin // ebreak
+                // nopとして実装
+                pc_next = pc + 4;
+                rd_we = 0;
+                mem_we = 0;
+              end
+              12'h002: begin // uret
+                // nopとして実装
+                pc_next = pc + 4;
+                rd_we = 0;
+                mem_we = 0;
+              end
+              12'h102: begin // sret
+                // nopとして実装
+                pc_next = pc + 4;
+                rd_we = 0;
+                mem_we = 0;
+              end
+              12'h302: begin // mret
+                // nopとして実装
+                pc_next = pc + 4;
+                rd_we = 0;
+                mem_we = 0;
+              end
+            endcase
           end
           3'b001: begin // csrrw
+            pc_next = pc + 4;
             // レジスタにCSRの値を書き込む
             rd_we = 1;
-            rd_wd = csr_rd;
+            rd_wd = csr_rd1;
             // CSRにレジスタの値を書き込む
-            csr_addr = imm_i;
-            csr_we = 1;
-            csr_wd = rs1_rd;
+            csr_addr1 = imm_i;
+            csr_we1 = 1;
+            csr_wd1 = rs1_rd;
           end
           3'b010: begin // csrrs
+            pc_next = pc + 4;
             // レジスタにCSRの値を書き込む
             rd_we = 1;
-            rd_wd = csr_rd;
+            rd_wd = csr_rd1;
             // CSRをレジスタの値でビットセット
-            csr_addr = imm_i;
-            csr_we = 1;
-            csr_wd = csr_rd | rs1_rd;
+            csr_addr1 = imm_i;
+            csr_we1 = 1;
+            csr_wd1 = csr_rd1 | rs1_rd;
           end
           3'b011: begin // csrrc
+            pc_next = pc + 4;
             // レジスタにCSRの値を書き込む
             rd_we = 1;
-            rd_wd = csr_rd;
+            rd_wd = csr_rd1;
             // CSRをレジスタの値でビットクリア
-            csr_addr = imm_i;
-            csr_we = 1;
-            csr_wd = csr_rd & ~rs1_rd;
+            csr_addr1 = imm_i;
+            csr_we1 = 1;
+            csr_wd1 = csr_rd1 & ~rs1_rd;
           end
           3'b101: begin // csrrwi
+            pc_next = pc + 4;
             // レジスタにCSRの値を書き込む
             rd_we = 1;
-            rd_wd = csr_rd;
+            rd_wd = csr_rd1;
             // CSRに即値を書き込む
-            csr_addr = imm_i;
-            csr_we = 1;
-            csr_wd = csr_imm;
+            csr_addr1 = imm_i;
+            csr_we1 = 1;
+            csr_wd1 = csr_imm;
           end
           3'b110: begin // csrrsi
+            pc_next = pc + 4;
             // レジスタにCSRの値を書き込む
             rd_we = 1;
-            rd_wd = csr_rd;
+            rd_wd = csr_rd1;
             // CSRを即値でビットセット
-            csr_addr = imm_i;
-            csr_we = 1;
-            csr_wd = csr_rd | csr_imm;
+            csr_addr1 = imm_i;
+            csr_we1 = 1;
+            csr_wd1 = csr_rd1 | csr_imm;
           end
           3'b111: begin // csrrci
+            pc_next = pc + 4;
             // レジスタにCSRの値を書き込む
             rd_we = 1;
-            rd_wd = csr_rd;
+            rd_wd = csr_rd1;
             // CSRを即値でビットクリア
-            csr_addr = imm_i;
-            csr_we = 1;
-            csr_wd = csr_rd & ~csr_imm;
+            csr_addr1 = imm_i;
+            csr_we1 = 1;
+            csr_wd1 = csr_rd1 & ~csr_imm;
           end
         endcase
+      end
+      7'b0001111: begin // fence, fence.i
+        // nopとして実装
+        pc_next = pc + 4;
+        rd_we = 0;
+        mem_we = 0;
+      end
+      7'bx: begin
+      end
+      default: begin
+        $error("Unknown opcode: %b at 0x%h", opcode, pc);
+        $fatal(1);
       end
     endcase
   end
