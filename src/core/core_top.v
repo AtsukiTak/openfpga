@@ -308,6 +308,13 @@ assign aux_scl = 1'bZ;
 assign vpll_feed = 1'bZ;
 
 
+// RISC-V core
+top #(.PC_INIT('h4048), .MEM_SIZE('h8000_0000)) riscv_top(
+  .clk(clk_74a),
+  .rst_n(reset_n)
+);
+
+
 // for bridge write data, we just broadcast it to all bus devices
 // for bridge read data, we have to mux it
 // add your own devices here
