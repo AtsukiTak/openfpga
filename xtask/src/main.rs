@@ -13,6 +13,7 @@ pub struct Args {
 #[derive(clap::Subcommand)]
 pub enum Task {
     RemoteCompile,
+    RemotePush,
     Reverse {
         #[arg(index = 1)]
         src: String,
@@ -28,6 +29,9 @@ fn main() {
 
     match args.task {
         Task::RemoteCompile => remote_compile(&config),
+        Task::RemotePush => {
+            remote_push(&config);
+        },
         Task::Reverse { src, dst } => reverse(&src, &dst),
     }
 }
@@ -35,53 +39,7 @@ fn main() {
 fn remote_compile(config: &Config) {
     eprintln!("Task: remote-compile");
 
-    // リモートサーバーに一時的なディレクトリを作成
-    let tmp_dir = {
-        eprintln!("Creating a temporary directory on the remote server.");
-
-        let user = &config.remote_server_user;
-        let ip = &config.remote_server_ip;
-        let ssh_dst = format!("{user}@{ip}");
-        let cmd = "mktemp -d /tmp/atsuki-xtask-XXXXXX";
-        let result = Command::new("ssh")
-            .args(&[&ssh_dst, cmd])
-            .stderr(std::process::Stdio::inherit())
-            .output()
-            .expect("failed to execute ssh process");
-
-        if !result.status.success() {
-            panic!("failed to execute ssh. status: {}", result.status);
-        }
-
-        let tmp_dir = String::from_utf8(result.stdout).unwrap();
-        let tmp_dir = tmp_dir.trim().to_string();
-
-        eprintln!("Created a temporary directory: {}", tmp_dir);
-
-        tmp_dir
-    };
-
-    // 作成したディレクトリにソースコードをコピー
-    {
-        eprintln!("Copying source code to the remote server.");
-
-        let user = &config.remote_server_user;
-        let ip = &config.remote_server_ip;
-        let scp_dst = format!("{user}@{ip}:{tmp_dir}",);
-        let scp_src = "src";
-        let result = Command::new("scp")
-            .args(&["-r", &scp_src, &scp_dst])
-            .stderr(std::process::Stdio::inherit())
-            .stdout(std::process::Stdio::inherit())
-            .output()
-            .expect("failed to execute scp process");
-
-        if !result.status.success() {
-            panic!("failed to execute scp. status: {}", result.status);
-        }
-
-        eprintln!("Copied source code to the remote server.");
-    }
+    let tmp_dir = remote_push(config);
 
     // リモートサーバーでコンパイル
     {
@@ -153,6 +111,60 @@ fn remote_compile(config: &Config) {
     }
 
     eprintln!("Done.");
+}
+
+fn remote_push(config: &Config) -> String {
+    eprintln!("Task: remote-push");
+
+    // リモートサーバーに一時的なディレクトリを作成
+    let tmp_dir = {
+        eprintln!("Creating a temporary directory on the remote server.");
+
+        let user = &config.remote_server_user;
+        let ip = &config.remote_server_ip;
+        let ssh_dst = format!("{user}@{ip}");
+        let cmd = "mktemp -d /tmp/atsuki-xtask-XXXXXX";
+        let result = Command::new("ssh")
+            .args(&[&ssh_dst, cmd])
+            .stderr(std::process::Stdio::inherit())
+            .output()
+            .expect("failed to execute ssh process");
+
+        if !result.status.success() {
+            panic!("failed to execute ssh. status: {}", result.status);
+        }
+
+        let tmp_dir = String::from_utf8(result.stdout).unwrap();
+        let tmp_dir = tmp_dir.trim().to_string();
+
+        eprintln!("Created a temporary directory: {}", tmp_dir);
+
+        tmp_dir
+    };
+
+    // 作成したディレクトリにソースコードをコピー
+    {
+        eprintln!("Copying source code to the remote server.");
+
+        let user = &config.remote_server_user;
+        let ip = &config.remote_server_ip;
+        let scp_dst = format!("{user}@{ip}:{tmp_dir}",);
+        let scp_src = "src";
+        let result = Command::new("scp")
+            .args(&["-r", &scp_src, &scp_dst])
+            .stderr(std::process::Stdio::inherit())
+            .stdout(std::process::Stdio::inherit())
+            .output()
+            .expect("failed to execute scp process");
+
+        if !result.status.success() {
+            panic!("failed to execute scp. status: {}", result.status);
+        }
+
+        eprintln!("Copied source code to the remote server.");
+    }
+
+    tmp_dir
 }
 
 fn reverse(src_file: &str, dst_file: &str) {
