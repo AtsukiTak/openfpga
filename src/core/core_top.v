@@ -309,7 +309,7 @@ assign vpll_feed = 1'bZ;
 
 
 // RISC-V core
-top #(.PC_INIT('h4048), .MEM_SIZE('h8000_0000)) riscv_top(
+top #(.PC_INIT('h8000_0000), .MEM_SIZE('h4096)) riscv_top(
   .clk(clk_74a),
   .rst_n(reset_n)
 );
