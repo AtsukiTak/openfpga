@@ -1,6 +1,3 @@
-mod config;
-
-use self::config::Config;
 use clap::Parser;
 use std::process::Command;
 
@@ -22,38 +19,35 @@ pub enum Task {
     },
 }
 
+const SSH_DST: &str = "ubuntu";
+
 fn main() {
     let args = Args::parse();
 
-    let config = Config::new();
-
     match args.task {
-        Task::RemoteCompile => remote_compile(&config),
+        Task::RemoteCompile => remote_compile(),
         Task::RemotePush => {
-            remote_push(&config);
+            remote_push();
         },
         Task::Reverse { src, dst } => reverse(&src, &dst),
     }
 }
 
-fn remote_compile(config: &Config) {
+fn remote_compile() {
     eprintln!("Task: remote-compile");
 
-    let tmp_dir = remote_push(config);
+    let tmp_dir = remote_push();
 
     // リモートサーバーでコンパイル
     {
         eprintln!("Compiling on the remote server.");
 
-        let user = &config.remote_server_user;
-        let ip = &config.remote_server_ip;
-        let ssh_dst = format!("{user}@{ip}");
         let working_dir = format!("{tmp_dir}/src");
         let compile_cmd =
-            "$HOME/intelFPGA_lite/23.1std/quartus/bin/quartus_sh --flow compile fpga/ap_core";
+            "$HOME/intelFPGA_lite/23.1std/quartus/bin/quartus_sh --flow compile ap_core";
         let cmd = format!("cd {working_dir} && {compile_cmd}");
         let result = Command::new("ssh")
-            .args(&[&ssh_dst, &cmd])
+            .args(&[SSH_DST, &cmd])
             .stderr(std::process::Stdio::inherit())
             .stdout(std::process::Stdio::inherit())
             .output()
@@ -70,10 +64,8 @@ fn remote_compile(config: &Config) {
     {
         eprintln!("Downloading the output files from the remote server.");
 
-        let user = &config.remote_server_user;
-        let ip = &config.remote_server_ip;
-        let scp_src = format!("{user}@{ip}:{tmp_dir}/src/fpga/output_files");
-        let scp_dst = "src/fpga";
+        let scp_src = format!("{SSH_DST}:{tmp_dir}/src/output_files");
+        let scp_dst = ".";
         let result = Command::new("scp")
             .args(&["-r", &scp_src, &scp_dst])
             .stderr(std::process::Stdio::inherit())
@@ -92,8 +84,8 @@ fn remote_compile(config: &Config) {
     {
         eprintln!("Reversing the output files.");
 
-        let src_file = "src/fpga/output_files/ap_core.rbf";
-        let dst_file = "src/fpga/output_files/ap_core.rbf_r";
+        let src_file = "output_files/ap_core.rbf";
+        let dst_file = "output_files/ap_core.rbf_r";
         reverse(src_file, dst_file);
 
         eprintln!("Reversed the output files.");
@@ -103,8 +95,8 @@ fn remote_compile(config: &Config) {
     {
         eprintln!("Copying the output files to dist.");
 
-        let src_file = "src/fpga/output_files/ap_core.rbf_r";
-        let dst_file = "dist/Cores/Developer.Core Template/bitstream.rbf_r";
+        let src_file = "output_files/ap_core.rbf_r";
+        let dst_file = "AnaloguePocket/Cores/Atsuki.Core1/bitstream.rbf_r";
         std::fs::copy(src_file, dst_file).expect("cannot copy file");
 
         eprintln!("Copied the output files to dist.");
@@ -113,19 +105,16 @@ fn remote_compile(config: &Config) {
     eprintln!("Done.");
 }
 
-fn remote_push(config: &Config) -> String {
+fn remote_push() -> String {
     eprintln!("Task: remote-push");
 
     // リモートサーバーに一時的なディレクトリを作成
     let tmp_dir = {
         eprintln!("Creating a temporary directory on the remote server.");
 
-        let user = &config.remote_server_user;
-        let ip = &config.remote_server_ip;
-        let ssh_dst = format!("{user}@{ip}");
         let cmd = "mktemp -d /tmp/atsuki-xtask-XXXXXX";
         let result = Command::new("ssh")
-            .args(&[&ssh_dst, cmd])
+            .args(&[SSH_DST, cmd])
             .stderr(std::process::Stdio::inherit())
             .output()
             .expect("failed to execute ssh process");
@@ -146,9 +135,7 @@ fn remote_push(config: &Config) -> String {
     {
         eprintln!("Copying source code to the remote server.");
 
-        let user = &config.remote_server_user;
-        let ip = &config.remote_server_ip;
-        let scp_dst = format!("{user}@{ip}:{tmp_dir}",);
+        let scp_dst = format!("{SSH_DST}:{tmp_dir}",);
         let scp_src = "src";
         let result = Command::new("scp")
             .args(&["-r", &scp_src, &scp_dst])
