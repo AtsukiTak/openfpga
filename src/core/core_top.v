@@ -307,11 +307,33 @@ assign user1 = 1'bZ;
 assign aux_scl = 1'bZ;
 assign vpll_feed = 1'bZ;
 
+// throtlling the clock
+// 74.25mhz is too fast for the core, so we divide it by 37000000
+// to get a 2hz clock
+localparam integer DIV_FACTOR = 37000000;
+// Counter to count the number of input clock cycles
+integer counter;
+reg throttle_clk;
+always @(posedge clk_74a) begin
+    if (!reset_n) begin
+        counter <= 0;
+        throttle_clk <= 0;
+    end else begin
+        if (counter == DIV_FACTOR - 1) begin
+            counter <= 0;
+            throttle_clk <= ~throttle_clk;  // Toggle the output clock
+        end else begin
+            counter <= counter + 1;
+        end
+    end
+end
 
 // RISC-V core
-top #(.PC_INIT('h8000_0000), .MEM_SIZE('h4096)) riscv_top(
-  .clk(clk_74a),
-  .rst_n(reset_n)
+wire [31:0] reg4;
+top #(.PC_INIT(0), .MEM_SIZE(20)) riscv_top(
+  .clk(throttle_clk),
+  .rst_n(reset_n),
+  .reg4(reg4)
 );
 
 
@@ -602,10 +624,12 @@ always @(posedge clk_core_12288 or negedge reset_n) begin
                 vidout_rgb[15:8]  <= 8'd60;
                 vidout_rgb[7:0]   <= 8'd60;
 
-                if (x_count < 60 || y_count > 200) begin
-                    vidout_rgb[23:16] <= 8'd255;
-                    vidout_rgb[15:8]  <= 8'd0;
-                    vidout_rgb[7:0]   <= 8'd0;
+                if (reg4 == 1) begin
+                  if (x_count < 60 || y_count > 200) begin
+                      vidout_rgb[23:16] <= 8'd255;
+                      vidout_rgb[15:8]  <= 8'd0;
+                      vidout_rgb[7:0]   <= 8'd0;
+                  end
                 end
             end
         end
